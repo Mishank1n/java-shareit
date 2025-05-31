@@ -99,7 +99,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public void delete(Long owner, Long itemId) {
         UserDto ownerDto = userService.get(owner);
-        if (repository.getItem(itemId)==null){
+        if (repository.getItem(itemId) == null) {
             log.error("Предмет с id = {} не найден!", itemId);
             throw new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
         }
