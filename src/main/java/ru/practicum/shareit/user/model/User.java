@@ -1,5 +1,6 @@
-package ru.practicum.shareit.item.model;
+package ru.practicum.shareit.user.model;
 
+import jakarta.validation.constraints.Email;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,11 +14,9 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @AllArgsConstructor
 @NoArgsConstructor
-public class Item {
+public class User {
     Long id;
     String name;
-    String description;
-    Boolean available;
-    Long owner;
-    //ItemRequest request;
+    @Email(message = "Адрес электронной почты должен быть реальным!")
+    String email;
 }
