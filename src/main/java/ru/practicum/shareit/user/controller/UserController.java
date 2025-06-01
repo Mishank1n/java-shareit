@@ -19,8 +19,8 @@ public class UserController {
     @Autowired
     private UserService service;
 
-    @GetMapping("/{userId}")
-    public UserDto get(@PathVariable Long userId) {
+    @GetMapping("/{user-id}")
+    public UserDto get(@PathVariable("user-id") Long userId) {
         log.info("Получен запрос на получение пользователя с id = {}", userId);
         return service.get(userId);
     }
@@ -31,14 +31,14 @@ public class UserController {
         return service.create(user);
     }
 
-    @PatchMapping("/{userId}")
-    public UserDto update(@PathVariable Long userId, @RequestBody User newUser) {
+    @PatchMapping("/{user-id}")
+    public UserDto update(@PathVariable("user-id") Long userId, @RequestBody User newUser) {
         log.info("Получен запрос на обновление пользователя с id = {}", userId);
         return service.update(userId, newUser);
     }
 
-    @DeleteMapping("/{userId}")
-    public void delete(@PathVariable Long userId) {
+    @DeleteMapping("/{user-id}")
+    public void delete(@PathVariable("user-id") Long userId) {
         log.info("Получен запрос на удаление пользователя с id = {}", userId);
         service.delete(userId);
     }

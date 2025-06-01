@@ -17,29 +17,30 @@ import java.util.List;
 @Slf4j
 public class ItemController {
 
+    private final String USER_ID_HEADER = "X-Sharer-User-Id";
     @Autowired
     private ItemService service;
 
     @PostMapping
-    public ItemDto create(@RequestHeader(required = true, name = "X-Sharer-User-Id") Long owner, @RequestBody Item item) {
+    public ItemDto create(@RequestHeader(required = true, name = USER_ID_HEADER) Long owner, @RequestBody Item item) {
         log.info("Получен запрос на создание предмета от пользователя c id = {}", owner);
         return service.create(owner, item);
     }
 
-    @PatchMapping("/{itemId}")
-    public ItemDto update(@RequestHeader(required = true, name = "X-Sharer-User-Id") Long owner, @PathVariable Long itemId, @RequestBody Item newItem) {
+    @PatchMapping("/{item-id}")
+    public ItemDto update(@RequestHeader(required = true, name = USER_ID_HEADER) Long owner, @PathVariable("item-id") Long itemId, @RequestBody Item newItem) {
         log.info("Получен запрос на обновление предмета c id = {} от пользователя c id = {}", itemId, owner);
         return service.update(owner, itemId, newItem);
     }
 
-    @GetMapping("/{itemId}")
-    public ItemDto get(@PathVariable Long itemId) {
+    @GetMapping("/{item-id}")
+    public ItemDto get(@PathVariable("item-id") Long itemId) {
         log.info("Получен запрос на получение предмета c id = {}", itemId);
         return service.getById(itemId);
     }
 
     @GetMapping
-    public List<ItemDto> getAllUserItems(@RequestHeader(required = true, name = "X-Sharer-User-Id") Long owner) {
+    public List<ItemDto> getAllUserItems(@RequestHeader(required = true, name = USER_ID_HEADER) Long owner) {
         log.info("Получен запрос на получение списка всех предметов пользователя c id = {}", owner);
         return service.getAllUserItems(owner);
     }
@@ -50,8 +51,8 @@ public class ItemController {
         return service.search(text);
     }
 
-    @DeleteMapping("/{itemId}")
-    public void deleteItem(@RequestHeader(required = true, name = "X-Sharer-User-Id") Long owner, @PathVariable Long itemId) {
+    @DeleteMapping("/{item-id}")
+    public void deleteItem(@RequestHeader(required = true, name = USER_ID_HEADER) Long owner, @PathVariable("item-id") Long itemId) {
         log.info("Получен запрос на удаление предмета с id = {} от пользователя c id = {}", itemId, owner);
         service.delete(owner, itemId);
     }
