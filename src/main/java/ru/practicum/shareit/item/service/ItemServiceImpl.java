@@ -3,12 +3,13 @@ package ru.practicum.shareit.item.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.exception.model.ValidationException;
-import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.service.UserService;
 
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import java.util.List;
 
 @Service
 @Slf4j
+@Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
 
     @Autowired
@@ -25,9 +27,10 @@ public class ItemServiceImpl implements ItemService {
     private UserService userService;
 
     @Override
-    public ItemDto create(Long owner, Item item) {
-        UserDto userDto = userService.get(owner);
-        item.setOwner(userDto.getId());
+    @Transactional
+    public Item create(Long owner, Item item) {
+        User user = userService.get(owner);
+        item.setOwner(user);
         if (item.getName() == null || item.getName().isEmpty()) {
             log.error("Имя предмета не может быть пустым");
             throw new ValidationException("Имя предмета не может быть пустым");
@@ -41,37 +44,37 @@ public class ItemServiceImpl implements ItemService {
             throw new ValidationException("Доступность предмета не может быть пустой");
         }
         log.info("Создан предмет пользователем с id = {}", owner);
-        return ItemDto.toItemDto(repository.addItem(item));
+        return repository.save(item);
     }
 
     @Override
-    public ItemDto getById(Long id) {
-        if (repository.getItem(id) == null) {
+    public Item getById(Long id) {
+        Item item = repository.findById(id).orElseThrow(()->{
             log.error("Предмет с id = {} не найден!", id);
-            throw new NotFoundException(String.format("Предмет с id = %d не найден!", id));
-        }
+            return new NotFoundException(String.format("Предмет с id = %d не найден!", id));
+        });
         log.info("Найден и возвращен предмет с id = {}", id);
-        return ItemDto.toItemDto(repository.getItem(id));
+        return item;
     }
 
     @Override
-    public List<ItemDto> getAllUserItems(Long owner) {
-        UserDto userDto = userService.get(owner);
+    public List<Item> getAllUserItems(Long owner) {
+        User user = userService.get(owner);
         log.info("Найдены и возвращены все предметы пользователя с id = {}", owner);
-        return repository.getAll().stream().filter(item -> item.getOwner().equals(owner)).map(ItemDto::toItemDto).toList();
+        return repository.findByOwnerId(user.getId());
     }
 
     @Override
-    public ItemDto update(Long owner, Long itemId, Item newItem) {
-        UserDto userDto = userService.get(owner);
-        if (repository.getItem(itemId) == null) {
+    @Transactional
+    public Item update(Long owner, Long itemId, Item newItem) {
+        User user = userService.get(owner);
+        Item item = repository.findById(itemId).orElseThrow(()->{
             log.error("Предмет с id = {} не найден!", itemId);
-            throw new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
-        }
-        Item item = repository.getItem(itemId);
-        if (!item.getOwner().equals(owner)) {
+            return new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
+        });
+        if (!item.getOwner().getId().equals(owner)) {
             log.error("Изменить вещь c id = {} может только владелец c id = {} ", itemId, owner);
-            throw new ValidationException(String.format("Изменить вещь c id = %d может только владелец c id = %d ", itemId, owner));
+            throw  new ValidationException(String.format("Изменить вещь c id = %d может только владелец c id = %d ", itemId, owner));
         }
         if (newItem.getName() != null && !newItem.getName().isEmpty() && !item.getName().equals(newItem.getName())) {
             item.setName(newItem.getName());
@@ -83,32 +86,32 @@ public class ItemServiceImpl implements ItemService {
             item.setAvailable(newItem.getAvailable());
         }
         log.info("Обновлены данные предмета с id = {}", itemId);
-        return ItemDto.toItemDto(item);
+        return item;
     }
 
     @Override
-    public List<ItemDto> search(String text) {
+    public List<Item> search(String text) {
         if (text.isEmpty()) {
             log.info("Получена пустая строка запроса");
             return new ArrayList<>();
         }
         log.info("Найдены и возвращены все предметы с текстом = {}", text);
-        return repository.getAll().stream().filter(item -> item.getDescription().toLowerCase().contains(text.toLowerCase()) || item.getName().toLowerCase().contains(text.toLowerCase())).filter(Item::getAvailable).map(ItemDto::toItemDto).toList();
+        return repository.findAll().stream().filter(item -> item.getDescription().toLowerCase().contains(text.toLowerCase()) || item.getName().toLowerCase().contains(text.toLowerCase())).filter(Item::getAvailable).toList();
     }
 
     @Override
-    public void delete(Long owner, Long itemId) {
-        UserDto ownerDto = userService.get(owner);
-        if (repository.getItem(itemId) == null) {
+    @Transactional
+    public void delete(Long ownerId, Long itemId) {
+        User owner = userService.get(ownerId);
+        Item item = repository.findById(itemId).orElseThrow(()-> {
             log.error("Предмет с id = {} не найден!", itemId);
-            throw new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
-        }
-        Item item = repository.getItem(itemId);
-        if (!item.getOwner().equals(owner)) {
+            return new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
+        });
+        if (!item.getOwner().getId().equals(ownerId)) {
             log.error("Удалить вещь c id = {} может только владелец c id = {} ", itemId, owner);
             throw new ValidationException(String.format("Удалить вещь c id = %d может только владелец c id = %d ", itemId, owner));
         }
         log.info("Предмет с id = {} был удален", itemId);
-        repository.delete(itemId);
+        repository.deleteById(itemId);
     }
 }

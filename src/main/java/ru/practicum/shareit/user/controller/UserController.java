@@ -22,19 +22,19 @@ public class UserController {
     @GetMapping("/{user-id}")
     public UserDto get(@PathVariable("user-id") Long userId) {
         log.info("Получен запрос на получение пользователя с id = {}", userId);
-        return service.get(userId);
+        return UserDto.toUserDto(service.get(userId));
     }
 
     @PostMapping()
     public UserDto create(@Valid @RequestBody User user) {
         log.info("Получен запрос на создание пользователя");
-        return service.create(user);
+        return UserDto.toUserDto(service.create(user));
     }
 
     @PatchMapping("/{user-id}")
     public UserDto update(@PathVariable("user-id") Long userId, @RequestBody User newUser) {
         log.info("Получен запрос на обновление пользователя с id = {}", userId);
-        return service.update(userId, newUser);
+        return UserDto.toUserDto(service.update(userId, newUser));
     }
 
     @DeleteMapping("/{user-id}")

@@ -24,31 +24,31 @@ public class ItemController {
     @PostMapping
     public ItemDto create(@RequestHeader(required = true, name = userIdHeader) Long owner, @RequestBody Item item) {
         log.info("Получен запрос на создание предмета от пользователя c id = {}", owner);
-        return service.create(owner, item);
+        return ItemDto.toItemDto(service.create(owner, item));
     }
 
     @PatchMapping("/{item-id}")
     public ItemDto update(@RequestHeader(required = true, name = userIdHeader) Long owner, @PathVariable("item-id") Long itemId, @RequestBody Item newItem) {
         log.info("Получен запрос на обновление предмета c id = {} от пользователя c id = {}", itemId, owner);
-        return service.update(owner, itemId, newItem);
+        return ItemDto.toItemDto(service.update(owner, itemId, newItem));
     }
 
     @GetMapping("/{item-id}")
     public ItemDto get(@PathVariable("item-id") Long itemId) {
         log.info("Получен запрос на получение предмета c id = {}", itemId);
-        return service.getById(itemId);
+        return ItemDto.toItemDto(service.getById(itemId));
     }
 
     @GetMapping
     public List<ItemDto> getAllUserItems(@RequestHeader(required = true, name = userIdHeader) Long owner) {
         log.info("Получен запрос на получение списка всех предметов пользователя c id = {}", owner);
-        return service.getAllUserItems(owner);
+        return service.getAllUserItems(owner).stream().map(ItemDto::toItemDto).toList();
     }
 
     @GetMapping("/search")
     public List<ItemDto> search(@RequestParam(required = true) String text) {
         log.info("Получен запрос на поиск предметов по тексту = {}", text);
-        return service.search(text);
+        return service.search(text).stream().map(ItemDto::toItemDto).toList();
     }
 
     @DeleteMapping("/{item-id}")

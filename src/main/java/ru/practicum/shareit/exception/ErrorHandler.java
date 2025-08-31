@@ -1,6 +1,7 @@
 package ru.practicum.shareit.exception;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -17,7 +18,6 @@ public class ErrorHandler {
     public ExceptionResponse handlerNotFoundException(NotFoundException e) {
         return new ExceptionResponse(e.getMessage());
     }
-
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.CONFLICT)
@@ -36,5 +36,11 @@ public class ErrorHandler {
     public ExceptionResponse handlerAnotherException(RuntimeException e) {
         System.out.println(e.getMessage());
         return new ExceptionResponse("Внутренняя ошибка сервера");
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ExceptionResponse handlerWithoutHeader(MissingRequestHeaderException e){
+        return new ExceptionResponse("Нельзя выполнить данный запрос без id пользователя от кого идет запрос");
     }
 }
