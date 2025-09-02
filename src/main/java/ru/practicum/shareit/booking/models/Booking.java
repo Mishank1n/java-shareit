@@ -1,8 +1,6 @@
 package ru.practicum.shareit.booking.models;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Data;

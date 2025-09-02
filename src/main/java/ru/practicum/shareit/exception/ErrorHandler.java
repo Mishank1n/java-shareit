@@ -40,7 +40,7 @@ public class ErrorHandler {
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ExceptionResponse handlerWithoutHeader(MissingRequestHeaderException e){
+    public ExceptionResponse handlerWithoutHeader(MissingRequestHeaderException e) {
         return new ExceptionResponse("Нельзя выполнить данный запрос без id пользователя от кого идет запрос");
     }
 }

@@ -41,9 +41,11 @@ public class BookingServiceImpl implements BookingService {
     public Booking create(Long bookerId, Booking booking) {
         if (booking.getStart().equals(booking.getEnd()) || booking.getStart().isAfter(booking.getEnd())) {
             throw new ValidationException("Время начала бронирования не может быть позже времени окончания бронирования или сопадать ним");
-        } if (booking.getStart().isBefore(LocalDateTime.now())){
+        }
+        if (booking.getStart().isBefore(LocalDateTime.now())) {
             throw new ValidationException("Время начала бронирования не может быть в прошлом");
-        } if (booking.getEnd().isBefore(LocalDateTime.now()) || booking.getEnd().equals(LocalDateTime.now())){
+        }
+        if (booking.getEnd().isBefore(LocalDateTime.now()) || booking.getEnd().equals(LocalDateTime.now())) {
             throw new ValidationException("Время окончания бронирования не может быть в прошлом или настоящим");
         }
         User booker = userService.get(bookerId);
@@ -98,16 +100,16 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public List<Booking> getAllBookingsOfItemOwner(Long userId, String state) {
         List<Booking> allBookingsOfItemOwner = repository.findAllByItemOwnerIdOrderByStartDate(userId);
-        if (itemService.getAllUserItems(userId).isEmpty()){
+        if (itemService.getAllUserItems(userId).isEmpty()) {
             throw new NotFoundException(String.format("У пользователя с id = %d нет предметов для бронирования", userId));
         }
-        if (allBookingsOfItemOwner.isEmpty()){
+        if (allBookingsOfItemOwner.isEmpty()) {
             throw new NotFoundException(String.format("Вещи пользователя с id = %d еще не бронировались", userId));
         }
         return filterWithState(allBookingsOfItemOwner, state);
     }
 
-    private List<Booking> filterWithState (List<Booking> bookingList, String state){
+    private List<Booking> filterWithState(List<Booking> bookingList, String state) {
         return switch (state) {
             case "CURRENT" ->
                     bookingList.stream().filter(booking -> booking.getStatus().equals(Status.APPROVED)).filter(booking -> booking.getStart().isBefore(LocalDateTime.now()) && booking.getEnd().isAfter(LocalDateTime.now())).toList();

@@ -24,7 +24,7 @@ public class ItemDtoWithAddendum {
     LocalDateTime nextBooking;
     List<CommentDto> comments;
 
-    public static ItemDtoWithAddendum toItemDtoWithAddendum(Item item, LocalDateTime last, LocalDateTime future, List<Comment> comments){
+    public static ItemDtoWithAddendum toItemDtoWithAddendum(Item item, LocalDateTime last, LocalDateTime future, List<Comment> comments) {
         return new ItemDtoWithAddendum(item.getId(), item.getName(), item.getDescription(), item.getAvailable(), item.getOwner().getId(), last, future, comments.stream().map(CommentDto::toCommentDto).toList());
     }
 }

@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.exception.model.ThingIsAlreadyContain;
 import ru.practicum.shareit.exception.model.ValidationException;
-import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
@@ -39,24 +38,24 @@ public class UserServiceImpl implements UserService {
     public User get(Long id) {
         User user = repository
                 .findById(id)
-                .orElseThrow(()->{
+                .orElseThrow(() -> {
                     log.error("Пользователь с id = {} не найден", id);
-            return new NotFoundException(String.format("Пользователь с id = %d не найден", id));
+                    return new NotFoundException(String.format("Пользователь с id = %d не найден", id));
                 });
         return user;
     }
 
     @Override
     public User update(Long id, User newUser) {
-        if (newUser.getEmail()!=null && repository.existsByEmailAndIdNot(newUser.getEmail(), id)) {
+        if (newUser.getEmail() != null && repository.existsByEmailAndIdNot(newUser.getEmail(), id)) {
             log.error("Пользователь с адресом электронной почты = {} уже существует", newUser.getEmail());
             throw new ThingIsAlreadyContain(String.format("Пользователь с адресом электронной почты = %s уже существует", newUser.getEmail()));
         }
         User user = repository.findById(id)
-                .orElseThrow(()-> {
-            log.error("Пользователь с id = {} не найден", id);
-            return new NotFoundException(String.format("Пользователь с id = %d не найден", id));
-        });
+                .orElseThrow(() -> {
+                    log.error("Пользователь с id = {} не найден", id);
+                    return new NotFoundException(String.format("Пользователь с id = %d не найден", id));
+                });
         if (newUser.getEmail() != null && !newUser.getEmail().equals(user.getEmail())) {
             user.setEmail(newUser.getEmail());
         }

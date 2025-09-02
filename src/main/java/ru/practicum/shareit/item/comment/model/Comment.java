@@ -3,7 +3,6 @@ package ru.practicum.shareit.item.comment.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 import ru.practicum.shareit.item.model.Item;
