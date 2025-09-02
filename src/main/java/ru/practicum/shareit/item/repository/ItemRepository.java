@@ -10,4 +10,5 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     public List<Item> findByOwnerId(Long ownerId);
 
+
 }

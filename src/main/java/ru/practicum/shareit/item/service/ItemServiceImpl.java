@@ -4,14 +4,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.models.Booking;
+import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.exception.model.ValidationException;
+import ru.practicum.shareit.item.comment.dto.CommentDto;
+import ru.practicum.shareit.item.comment.model.Comment;
+import ru.practicum.shareit.item.comment.repository.CommentRepository;
+import ru.practicum.shareit.item.dto.ItemDtoWithAddendum;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.service.UserService;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +28,12 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private ItemRepository repository;
+
+    @Autowired
+    private BookingRepository bookingRepository;
+
+    @Autowired
+    private CommentRepository commentRepository;
 
     @Autowired
     private UserService userService;
@@ -48,20 +60,37 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public Item getById(Long id) {
+    public ItemDtoWithAddendum getById(Long id) {
         Item item = repository.findById(id).orElseThrow(()->{
             log.error("Предмет с id = {} не найден!", id);
             return new NotFoundException(String.format("Предмет с id = %d не найден!", id));
         });
         log.info("Найден и возвращен предмет с id = {}", id);
+        List<Comment> comments = commentRepository.findAllByItemId(id);
+        LocalDateTime last = bookingRepository.findLastBooking(item.getId(), LocalDateTime.now()).map(Booking::getStart).orElse(null);
+        LocalDateTime future = bookingRepository.findNextBooking(item.getId(), LocalDateTime.now()).map(Booking::getStart).orElse(null);
+        return ItemDtoWithAddendum.toItemDtoWithAddendum(item, last, future, comments);
+    }
+
+    @Override
+    public Item getByIdWithoutSecondary(Long id){
+        Item item = repository.findById(id).orElseThrow(()->{
+            log.error("Предмет с id = {} не найден!", id);
+            return new NotFoundException(String.format("Предмет с id = %d не найден!", id));
+        });
+        log.info("Найден предмет с id = {}", id);
         return item;
     }
 
     @Override
-    public List<Item> getAllUserItems(Long owner) {
+    public List<ItemDtoWithAddendum> getAllUserItems(Long owner) {
         User user = userService.get(owner);
         log.info("Найдены и возвращены все предметы пользователя с id = {}", owner);
-        return repository.findByOwnerId(user.getId());
+        return repository.findByOwnerId(owner).stream().map(item ->
+            ItemDtoWithAddendum.toItemDtoWithAddendum(item,
+                    bookingRepository.findLastBooking(item.getId(), LocalDateTime.now()).map(Booking::getEnd).orElse(null),
+                    bookingRepository.findNextBooking(item.getId(), LocalDateTime.now()).map(Booking::getStart).orElse(null), commentRepository.findAllByItemId(item.getId()))).toList();
+
     }
 
     @Override
@@ -97,6 +126,24 @@ public class ItemServiceImpl implements ItemService {
         }
         log.info("Найдены и возвращены все предметы с текстом = {}", text);
         return repository.findAll().stream().filter(item -> item.getDescription().toLowerCase().contains(text.toLowerCase()) || item.getName().toLowerCase().contains(text.toLowerCase())).filter(Item::getAvailable).toList();
+    }
+
+
+    @Override
+    @Transactional
+    public CommentDto postComment(Long userId, Long itemId, Comment comment) {
+        User author = userService.get(userId);
+        Item item = repository.findById(itemId).orElseThrow(()-> {
+            log.error("Предмет с id = {} не найден!", itemId);
+            return new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
+        });
+        if (bookingRepository.findAllBookerWhichTakeItem(itemId, LocalDateTime.now()).stream().noneMatch(user -> user.getId().equals(userId))){
+            throw new ValidationException(String.format("Пользователь с id = %d не брал в аренду предмет с id = %d",userId, itemId));
+        }
+        comment.setItem(item);
+        comment.setAuthor(author);
+        comment.setCreated(LocalDateTime.now());
+        return CommentDto.toCommentDto(commentRepository.save(comment));
     }
 
     @Override

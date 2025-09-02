@@ -3,7 +3,10 @@ package ru.practicum.shareit.item.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.item.comment.dto.CommentDto;
+import ru.practicum.shareit.item.comment.model.Comment;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemDtoWithAddendum;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.service.ItemService;
 
@@ -34,15 +37,15 @@ public class ItemController {
     }
 
     @GetMapping("/{item-id}")
-    public ItemDto get(@PathVariable("item-id") Long itemId) {
+    public ItemDtoWithAddendum get(@PathVariable("item-id") Long itemId) {
         log.info("Получен запрос на получение предмета c id = {}", itemId);
-        return ItemDto.toItemDto(service.getById(itemId));
+        return service.getById(itemId);
     }
 
     @GetMapping
-    public List<ItemDto> getAllUserItems(@RequestHeader(required = true, name = userIdHeader) Long owner) {
+    public List<ItemDtoWithAddendum> getAllUserItems(@RequestHeader(required = true, name = userIdHeader) Long owner) {
         log.info("Получен запрос на получение списка всех предметов пользователя c id = {}", owner);
-        return service.getAllUserItems(owner).stream().map(ItemDto::toItemDto).toList();
+        return service.getAllUserItems(owner);
     }
 
     @GetMapping("/search")
@@ -55,5 +58,10 @@ public class ItemController {
     public void deleteItem(@RequestHeader(required = true, name = userIdHeader) Long owner, @PathVariable("item-id") Long itemId) {
         log.info("Получен запрос на удаление предмета с id = {} от пользователя c id = {}", itemId, owner);
         service.delete(owner, itemId);
+    }
+
+    @PostMapping("/{item-id}/comment")
+    public CommentDto postComment(@RequestHeader(required = true, name = userIdHeader) Long userId, @PathVariable("item-id") Long itemId, @RequestBody Comment comment){
+        return service.postComment(userId, itemId, comment);
     }
 }

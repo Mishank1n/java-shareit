@@ -25,12 +25,10 @@ public class Booking {
     Long id;
 
     @NotNull(message = "Время начала бронирования не может быть пустым!")
-    @FutureOrPresent(message = "Время начала бронирования не может быть в прошлом!")
     @Column(name = "start_time", columnDefinition = "TIMESTAMP WITHOUT TIME ZONE", nullable = false)
     LocalDateTime start;
 
     @NotNull(message = "Время окончания бронирования не может быть пустым!")
-    @Future(message = "Время окончания бронирования не может быть в прошлом и настоящем!")
     @Column(name = "end_time", columnDefinition = "TIMESTAMP WITHOUT TIME ZONE", nullable = false)
     LocalDateTime end;
 
@@ -38,12 +36,9 @@ public class Booking {
     @Transient
     Long itemId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "item_id", nullable = false)
     Item item;
-
-    @Transient
-    Long bookerId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booker_id", nullable = false)
@@ -52,4 +47,5 @@ public class Booking {
     @Enumerated(value = EnumType.STRING)
     @Column(name = "status", nullable = false)
     Status status;
+
 }
