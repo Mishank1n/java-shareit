@@ -3,31 +3,47 @@ package ru.practicum.shareit.item.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.models.Booking;
+import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.exception.model.ValidationException;
-import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.comment.dto.CommentDto;
+import ru.practicum.shareit.item.comment.model.Comment;
+import ru.practicum.shareit.item.comment.repository.CommentRepository;
+import ru.practicum.shareit.item.dto.ItemDtoToOwner;
+import ru.practicum.shareit.item.dto.ItemDtoWithComments;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.service.UserService;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @Slf4j
+@Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private ItemRepository repository;
 
     @Autowired
+    private BookingRepository bookingRepository;
+
+    @Autowired
+    private CommentRepository commentRepository;
+
+    @Autowired
     private UserService userService;
 
     @Override
-    public ItemDto create(Long owner, Item item) {
-        UserDto userDto = userService.get(owner);
-        item.setOwner(userDto.getId());
+    @Transactional
+    public Item create(Long owner, Item item) {
+        User user = userService.get(owner);
+        item.setOwner(user);
         if (item.getName() == null || item.getName().isEmpty()) {
             log.error("Имя предмета не может быть пустым");
             throw new ValidationException("Имя предмета не может быть пустым");
@@ -41,35 +57,54 @@ public class ItemServiceImpl implements ItemService {
             throw new ValidationException("Доступность предмета не может быть пустой");
         }
         log.info("Создан предмет пользователем с id = {}", owner);
-        return ItemDto.toItemDto(repository.addItem(item));
+        return repository.save(item);
     }
 
     @Override
-    public ItemDto getById(Long id) {
-        if (repository.getItem(id) == null) {
-            log.error("Предмет с id = {} не найден!", id);
-            throw new NotFoundException(String.format("Предмет с id = %d не найден!", id));
-        }
-        log.info("Найден и возвращен предмет с id = {}", id);
-        return ItemDto.toItemDto(repository.getItem(id));
-    }
-
-    @Override
-    public List<ItemDto> getAllUserItems(Long owner) {
-        UserDto userDto = userService.get(owner);
-        log.info("Найдены и возвращены все предметы пользователя с id = {}", owner);
-        return repository.getAll().stream().filter(item -> item.getOwner().equals(owner)).map(ItemDto::toItemDto).toList();
-    }
-
-    @Override
-    public ItemDto update(Long owner, Long itemId, Item newItem) {
-        UserDto userDto = userService.get(owner);
-        if (repository.getItem(itemId) == null) {
+    public ItemDtoToOwner getById(Long userId, Long itemId) {
+        Item item = repository.findById(itemId).orElseThrow(() -> {
             log.error("Предмет с id = {} не найден!", itemId);
-            throw new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
+            return new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
+        });
+        log.info("Найден и возвращен предмет с id = {}", itemId);
+        LocalDateTime last = null;
+        LocalDateTime future = null;
+        if (item.getOwner().getId().equals(userId)) {
+            last = bookingRepository.findLastBooking(item.getId(), LocalDateTime.now()).map(Booking::getStart).orElse(null);
+            future = bookingRepository.findNextBooking(item.getId(), LocalDateTime.now()).map(Booking::getStart).orElse(null);
         }
-        Item item = repository.getItem(itemId);
-        if (!item.getOwner().equals(owner)) {
+        List<Comment> comments = commentRepository.findAllByItemId(itemId);
+        log.info("Была найдена и возвращена вещь с id = {} вместе с комментариями с ней", itemId);
+        return ItemDtoToOwner.toItemDtoToOwner(item, last, future, comments);
+    }
+
+    @Override
+    public Item getByIdWithoutSecondary(Long id) {
+        Item item = repository.findById(id).orElseThrow(() -> {
+            log.error("Предмет с id = {} не найден!", id);
+            return new NotFoundException(String.format("Предмет с id = %d не найден!", id));
+        });
+        log.info("Найден предмет с id = {}", id);
+        return item;
+    }
+
+    @Override
+    public List<ItemDtoWithComments> getAllUserItems(Long owner) {
+        User user = userService.get(owner);
+        log.info("Найдены и возвращены все предметы пользователя с id = {} вместе с комментариями с ней", owner);
+        return repository.findByOwnerId(owner).stream().map(item ->
+                ItemDtoWithComments.toItemDtoWithComments(item, commentRepository.findAllByItemId(item.getId()))).toList();
+    }
+
+    @Override
+    @Transactional
+    public Item update(Long owner, Long itemId, Item newItem) {
+        User user = userService.get(owner);
+        Item item = repository.findById(itemId).orElseThrow(() -> {
+            log.error("Предмет с id = {} не найден!", itemId);
+            return new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
+        });
+        if (!item.getOwner().getId().equals(owner)) {
             log.error("Изменить вещь c id = {} может только владелец c id = {} ", itemId, owner);
             throw new ValidationException(String.format("Изменить вещь c id = %d может только владелец c id = %d ", itemId, owner));
         }
@@ -83,32 +118,52 @@ public class ItemServiceImpl implements ItemService {
             item.setAvailable(newItem.getAvailable());
         }
         log.info("Обновлены данные предмета с id = {}", itemId);
-        return ItemDto.toItemDto(item);
+        return item;
     }
 
     @Override
-    public List<ItemDto> search(String text) {
+    public List<Item> search(String text) {
         if (text.isEmpty()) {
             log.info("Получена пустая строка запроса");
             return new ArrayList<>();
         }
         log.info("Найдены и возвращены все предметы с текстом = {}", text);
-        return repository.getAll().stream().filter(item -> item.getDescription().toLowerCase().contains(text.toLowerCase()) || item.getName().toLowerCase().contains(text.toLowerCase())).filter(Item::getAvailable).map(ItemDto::toItemDto).toList();
+        return repository.search(text);
+    }
+
+
+    @Override
+    @Transactional
+    public CommentDto postComment(Long userId, Long itemId, Comment comment) {
+        User author = userService.get(userId);
+        Item item = repository.findById(itemId).orElseThrow(() -> {
+            log.error("Предмет с id = {} не найден!", itemId);
+            return new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
+        });
+        if (bookingRepository.findAllBookerWhichTakeItem(itemId, LocalDateTime.now()).stream().noneMatch(user -> user.getId().equals(userId))) {
+            log.error("Пользователь с id = {} не брал в аренду предмет с id = {}", userId, itemId);
+            throw new ValidationException(String.format("Пользователь с id = %d не брал в аренду предмет с id = %d", userId, itemId));
+        }
+        comment.setItem(item);
+        comment.setAuthor(author);
+        comment.setCreated(LocalDateTime.now());
+        log.info("К предмету с id = {} был добавлен комментарий от пользователя с id = {} с содержанием : {}", itemId, userId, comment.getText());
+        return CommentDto.toCommentDto(commentRepository.save(comment));
     }
 
     @Override
-    public void delete(Long owner, Long itemId) {
-        UserDto ownerDto = userService.get(owner);
-        if (repository.getItem(itemId) == null) {
+    @Transactional
+    public void delete(Long ownerId, Long itemId) {
+        User owner = userService.get(ownerId);
+        Item item = repository.findById(itemId).orElseThrow(() -> {
             log.error("Предмет с id = {} не найден!", itemId);
-            throw new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
-        }
-        Item item = repository.getItem(itemId);
-        if (!item.getOwner().equals(owner)) {
+            return new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
+        });
+        if (!item.getOwner().getId().equals(ownerId)) {
             log.error("Удалить вещь c id = {} может только владелец c id = {} ", itemId, owner);
             throw new ValidationException(String.format("Удалить вещь c id = %d может только владелец c id = %d ", itemId, owner));
         }
         log.info("Предмет с id = {} был удален", itemId);
-        repository.delete(itemId);
+        repository.deleteById(itemId);
     }
 }
