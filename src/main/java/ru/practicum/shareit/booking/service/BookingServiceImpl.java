@@ -40,22 +40,27 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public Booking create(Long bookerId, Booking booking) {
         if (booking.getStart().equals(booking.getEnd()) || booking.getStart().isAfter(booking.getEnd())) {
-            throw new ValidationException("Время начала бронирования не может быть позже времени окончания бронирования или сопадать ним");
+            log.error("Время начала бронирования не может быть позже времени окончания бронирования или совпадать с ним");
+            throw new ValidationException("Время начала бронирования не может быть позже времени окончания бронирования или совпадать с ним");
         }
         if (booking.getStart().isBefore(LocalDateTime.now())) {
+            log.error("Время начала бронирования не может быть в прошлом");
             throw new ValidationException("Время начала бронирования не может быть в прошлом");
         }
         if (booking.getEnd().isBefore(LocalDateTime.now()) || booking.getEnd().equals(LocalDateTime.now())) {
+            log.error("Время окончания бронирования не может быть в прошлом или настоящим");
             throw new ValidationException("Время окончания бронирования не может быть в прошлом или настоящим");
         }
         User booker = userService.get(bookerId);
         Item item = itemService.getByIdWithoutSecondary(booking.getItemId());
         if (!item.getAvailable()) {
-            throw new ValidationException("Предмет должен быть доступен для бронирования");
+            log.error("Предмет с id = {} должен быть доступен для бронирования", item.getId());
+            throw new ValidationException(String.format("Предмет с id = %d должен быть доступен для бронирования", item.getId()));
         }
         booking.setStatus(Status.WAITING);
         booking.setItem(item);
         booking.setBooker(booker);
+        log.info("Пользователь с id = {} создал бронирование вещи с id = {}", bookerId, booking.getItemId());
         return repository.save(booking);
     }
 
@@ -66,8 +71,10 @@ public class BookingServiceImpl implements BookingService {
             return new NotFoundException(String.format("Бронирование с id = %d не найдено", bookingId));
         });
         if (!booking.getBooker().getId().equals(userId) && !booking.getItem().getOwner().getId().equals(userId)) {
-            throw new ValidationException("Просматривать бронированние может только пользователь, который отправил данный запрос, или владелец вещи");
+            log.error("Просматривать бронирование может только пользователь, который отправил данный запрос, или владелец вещи");
+            throw new ValidationException("Просматривать бронирование может только пользователь, который отправил данный запрос, или владелец вещи");
         }
+        log.info("Было получено бронирование с id = {}", bookingId);
         return booking;
     }
 
@@ -79,6 +86,7 @@ public class BookingServiceImpl implements BookingService {
             return new NotFoundException(String.format("Бронирование с id = %d не найдено", bookingId));
         });
         if (!booking.getItem().getOwner().getId().equals(userId)) {
+            log.error("Ответить на бронирование может только владелец вещи");
             throw new ValidationException("Ответить на бронирование может только владелец вещи");
         }
         if (isApproved) {
@@ -88,12 +96,15 @@ public class BookingServiceImpl implements BookingService {
         }
         repository.flush();
         entityManager.clear();
+        log.info("Пользователь с id = {} ответил на бронирование с id = {}", userId, bookingId);
         return repository.findByIdWithItemAndOwnerAndBooker(bookingId).get();
     }
 
     @Override
     public List<Booking> getAllBookingsOfUser(Long userId, String state) {
+        User user = userService.get(userId);
         List<Booking> allBookingsOfUser = repository.findAllByBookerIdOrderByStartDate(userId);
+        log.info("Были получены и возвращены все бронирования пользователя с id = {} с параметром поиска = {}", userId, state);
         return filterWithState(allBookingsOfUser, state);
     }
 
@@ -101,11 +112,14 @@ public class BookingServiceImpl implements BookingService {
     public List<Booking> getAllBookingsOfItemOwner(Long userId, String state) {
         List<Booking> allBookingsOfItemOwner = repository.findAllByItemOwnerIdOrderByStartDate(userId);
         if (itemService.getAllUserItems(userId).isEmpty()) {
-            throw new NotFoundException(String.format("У пользователя с id = %d нет предметов для бронирования", userId));
+            log.error("У пользователя с id = {} нет предметов", userId);
+            throw new NotFoundException(String.format("У пользователя с id = %d нет предметов", userId));
         }
         if (allBookingsOfItemOwner.isEmpty()) {
+            log.error("Вещи пользователя с id = {} еще не бронировались", userId);
             throw new NotFoundException(String.format("Вещи пользователя с id = %d еще не бронировались", userId));
         }
+        log.info("Были получены и возвращены все бронирования вещей пользователя с id = {} с параметром поиска = {}", userId, state);
         return filterWithState(allBookingsOfItemOwner, state);
     }
 

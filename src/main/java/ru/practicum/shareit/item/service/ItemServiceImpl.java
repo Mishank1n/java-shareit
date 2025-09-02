@@ -11,7 +11,8 @@ import ru.practicum.shareit.exception.model.ValidationException;
 import ru.practicum.shareit.item.comment.dto.CommentDto;
 import ru.practicum.shareit.item.comment.model.Comment;
 import ru.practicum.shareit.item.comment.repository.CommentRepository;
-import ru.practicum.shareit.item.dto.ItemDtoWithAddendum;
+import ru.practicum.shareit.item.dto.ItemDtoToOwner;
+import ru.practicum.shareit.item.dto.ItemDtoWithComments;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.model.User;
@@ -60,16 +61,21 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public ItemDtoWithAddendum getById(Long id) {
-        Item item = repository.findById(id).orElseThrow(() -> {
-            log.error("Предмет с id = {} не найден!", id);
-            return new NotFoundException(String.format("Предмет с id = %d не найден!", id));
+    public ItemDtoToOwner getById(Long userId, Long itemId) {
+        Item item = repository.findById(itemId).orElseThrow(() -> {
+            log.error("Предмет с id = {} не найден!", itemId);
+            return new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
         });
-        log.info("Найден и возвращен предмет с id = {}", id);
-        List<Comment> comments = commentRepository.findAllByItemId(id);
-        LocalDateTime last = bookingRepository.findLastBooking(item.getId(), LocalDateTime.now()).map(Booking::getStart).orElse(null);
-        LocalDateTime future = bookingRepository.findNextBooking(item.getId(), LocalDateTime.now()).map(Booking::getStart).orElse(null);
-        return ItemDtoWithAddendum.toItemDtoWithAddendum(item, last, future, comments);
+        log.info("Найден и возвращен предмет с id = {}", itemId);
+        LocalDateTime last = null;
+        LocalDateTime future = null;
+        if (item.getOwner().getId().equals(userId)) {
+            last = bookingRepository.findLastBooking(item.getId(), LocalDateTime.now()).map(Booking::getStart).orElse(null);
+            future = bookingRepository.findNextBooking(item.getId(), LocalDateTime.now()).map(Booking::getStart).orElse(null);
+        }
+        List<Comment> comments = commentRepository.findAllByItemId(itemId);
+        log.info("Была найдена и возвращена вещь с id = {} вместе с комментариями с ней", itemId);
+        return ItemDtoToOwner.toItemDtoToOwner(item, last, future, comments);
     }
 
     @Override
@@ -83,14 +89,11 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<ItemDtoWithAddendum> getAllUserItems(Long owner) {
+    public List<ItemDtoWithComments> getAllUserItems(Long owner) {
         User user = userService.get(owner);
-        log.info("Найдены и возвращены все предметы пользователя с id = {}", owner);
+        log.info("Найдены и возвращены все предметы пользователя с id = {} вместе с комментариями с ней", owner);
         return repository.findByOwnerId(owner).stream().map(item ->
-                ItemDtoWithAddendum.toItemDtoWithAddendum(item,
-                        bookingRepository.findLastBooking(item.getId(), LocalDateTime.now()).map(Booking::getEnd).orElse(null),
-                        bookingRepository.findNextBooking(item.getId(), LocalDateTime.now()).map(Booking::getStart).orElse(null), commentRepository.findAllByItemId(item.getId()))).toList();
-
+                ItemDtoWithComments.toItemDtoWithComments(item, commentRepository.findAllByItemId(item.getId()))).toList();
     }
 
     @Override
@@ -125,7 +128,7 @@ public class ItemServiceImpl implements ItemService {
             return new ArrayList<>();
         }
         log.info("Найдены и возвращены все предметы с текстом = {}", text);
-        return repository.findAll().stream().filter(item -> item.getDescription().toLowerCase().contains(text.toLowerCase()) || item.getName().toLowerCase().contains(text.toLowerCase())).filter(Item::getAvailable).toList();
+        return repository.search(text);
     }
 
 
@@ -138,11 +141,13 @@ public class ItemServiceImpl implements ItemService {
             return new NotFoundException(String.format("Предмет с id = %d не найден!", itemId));
         });
         if (bookingRepository.findAllBookerWhichTakeItem(itemId, LocalDateTime.now()).stream().noneMatch(user -> user.getId().equals(userId))) {
+            log.error("Пользователь с id = {} не брал в аренду предмет с id = {}", userId, itemId);
             throw new ValidationException(String.format("Пользователь с id = %d не брал в аренду предмет с id = %d", userId, itemId));
         }
         comment.setItem(item);
         comment.setAuthor(author);
         comment.setCreated(LocalDateTime.now());
+        log.info("К предмету с id = {} был добавлен комментарий от пользователя с id = {} с содержанием : {}", itemId, userId, comment.getText());
         return CommentDto.toCommentDto(commentRepository.save(comment));
     }
 

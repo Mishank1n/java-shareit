@@ -6,7 +6,8 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.item.comment.dto.CommentDto;
 import ru.practicum.shareit.item.comment.model.Comment;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.dto.ItemDtoWithAddendum;
+import ru.practicum.shareit.item.dto.ItemDtoToOwner;
+import ru.practicum.shareit.item.dto.ItemDtoWithComments;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.service.ItemService;
 
@@ -37,13 +38,13 @@ public class ItemController {
     }
 
     @GetMapping("/{item-id}")
-    public ItemDtoWithAddendum get(@PathVariable("item-id") Long itemId) {
+    public ItemDtoToOwner get(@RequestHeader(required = true, name = userIdHeader) Long userId, @PathVariable("item-id") Long itemId) {
         log.info("Получен запрос на получение предмета c id = {}", itemId);
-        return service.getById(itemId);
+        return service.getById(userId, itemId);
     }
 
     @GetMapping
-    public List<ItemDtoWithAddendum> getAllUserItems(@RequestHeader(required = true, name = userIdHeader) Long owner) {
+    public List<ItemDtoWithComments> getAllUserItems(@RequestHeader(required = true, name = userIdHeader) Long owner) {
         log.info("Получен запрос на получение списка всех предметов пользователя c id = {}", owner);
         return service.getAllUserItems(owner);
     }
@@ -62,6 +63,7 @@ public class ItemController {
 
     @PostMapping("/{item-id}/comment")
     public CommentDto postComment(@RequestHeader(required = true, name = userIdHeader) Long userId, @PathVariable("item-id") Long itemId, @RequestBody Comment comment) {
+        log.info("Получен запрос на добавление пользователем с id = {} комментария для предмета с id = {}", userId, itemId);
         return service.postComment(userId, itemId, comment);
     }
 }

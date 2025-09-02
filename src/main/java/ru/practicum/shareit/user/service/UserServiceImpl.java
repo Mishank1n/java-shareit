@@ -27,10 +27,9 @@ public class UserServiceImpl implements UserService {
         if (repository.findAll().stream().anyMatch(user1 -> user1.getEmail().equals(user.getEmail()))) {
             log.error("Пользователь с адресом электронной почты = {} уже существует", user.getEmail());
             throw new ThingIsAlreadyContain(String.format("Пользователь с адресом электронной почты = %s уже существует", user.getEmail()));
-        } else {
-            log.info("Создан новый пользователь с почтой = {}", user.getEmail());
-            return repository.save(user);
         }
+        log.info("Создан новый пользователь с почтой = {}", user.getEmail());
+        return repository.save(user);
     }
 
     @Override
@@ -42,6 +41,7 @@ public class UserServiceImpl implements UserService {
                     log.error("Пользователь с id = {} не найден", id);
                     return new NotFoundException(String.format("Пользователь с id = %d не найден", id));
                 });
+        log.info("Пользователь с id = {} был найден", id);
         return user;
     }
 
