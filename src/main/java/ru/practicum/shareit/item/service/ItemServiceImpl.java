@@ -11,10 +11,15 @@ import ru.practicum.shareit.exception.model.ValidationException;
 import ru.practicum.shareit.item.comment.dto.CommentDto;
 import ru.practicum.shareit.item.comment.model.Comment;
 import ru.practicum.shareit.item.comment.repository.CommentRepository;
+import ru.practicum.shareit.item.dto.ItemDtoForItemRequest;
 import ru.practicum.shareit.item.dto.ItemDtoToOwner;
 import ru.practicum.shareit.item.dto.ItemDtoWithComments;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.request.dto.ItemRequestDtoWithAnswers;
+import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.request.repository.ItemRequestRepository;
+import ru.practicum.shareit.request.service.ItemRequestService;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.service.UserService;
 
@@ -37,6 +42,9 @@ public class ItemServiceImpl implements ItemService {
     private CommentRepository commentRepository;
 
     @Autowired
+    private ItemRequestRepository itemRequestRepository;
+
+    @Autowired
     private UserService userService;
 
     @Override
@@ -55,6 +63,9 @@ public class ItemServiceImpl implements ItemService {
         if (item.getAvailable() == null) {
             log.error("Доступность предмета не может быть пустой");
             throw new ValidationException("Доступность предмета не может быть пустой");
+        }
+        if (item.getRequestId()!=null){
+            item.setRequest(itemRequestRepository.findById(item.getRequestId()).orElse(null));
         }
         log.info("Создан предмет пользователем с id = {}", owner);
         return repository.save(item);
@@ -149,6 +160,16 @@ public class ItemServiceImpl implements ItemService {
         comment.setCreated(LocalDateTime.now());
         log.info("К предмету с id = {} был добавлен комментарий от пользователя с id = {} с содержанием : {}", itemId, userId, comment.getText());
         return CommentDto.toCommentDto(commentRepository.save(comment));
+    }
+
+    @Override
+    public List<ItemDtoForItemRequest> getAllItemsWhichAreAnswerOnRequest(Long requestId) {
+        List<Item> answerOnRequest = repository.findByRequestId(requestId);
+        System.out.println(answerOnRequest);
+        if (answerOnRequest.isEmpty()){
+            return List.of();
+        }
+        return answerOnRequest.stream().map(ItemDtoForItemRequest::toItemDtoForItemRequest).toList();
     }
 
     @Override

@@ -2,6 +2,7 @@ package ru.practicum.shareit.item.service;
 
 import ru.practicum.shareit.item.comment.dto.CommentDto;
 import ru.practicum.shareit.item.comment.model.Comment;
+import ru.practicum.shareit.item.dto.ItemDtoForItemRequest;
 import ru.practicum.shareit.item.dto.ItemDtoToOwner;
 import ru.practicum.shareit.item.dto.ItemDtoWithComments;
 import ru.practicum.shareit.item.model.Item;
@@ -22,6 +23,8 @@ public interface ItemService {
     List<Item> search(String text);
 
     CommentDto postComment(Long userId, Long itemId, Comment comment);
+
+    List<ItemDtoForItemRequest> getAllItemsWhichAreAnswerOnRequest(Long requestId);
 
     void delete(Long owner, Long itemId);
 }
