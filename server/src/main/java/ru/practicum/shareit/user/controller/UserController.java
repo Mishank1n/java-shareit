@@ -15,12 +15,10 @@ import ru.practicum.shareit.user.service.UserService;
 @Slf4j
 public class UserController {
 
-    private final String pathWithUserId = "/{user-id}";
-
     @Autowired
     private UserService service;
 
-    @GetMapping(pathWithUserId)
+    @GetMapping("/{user-id}")
     public UserDto get(@PathVariable("user-id") Long userId) {
         return UserDto.toUserDto(service.get(userId));
     }
@@ -30,12 +28,12 @@ public class UserController {
         return UserDto.toUserDto(service.create(user));
     }
 
-    @PatchMapping(pathWithUserId)
+    @PatchMapping("/{user-id}")
     public UserDto update(@PathVariable("user-id") Long userId, @RequestBody User newUser) {
         return UserDto.toUserDto(service.update(userId, newUser));
     }
 
-    @DeleteMapping(pathWithUserId)
+    @DeleteMapping("/{user-id}")
     public void delete(@PathVariable("user-id") Long userId) {
         log.info("Получен запрос на удаление пользователя с id = {}", userId);
         service.delete(userId);

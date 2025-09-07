@@ -16,9 +16,8 @@ import ru.practicum.shareit.user.model.User;
 public class UserController {
 
     private final UserClient client;
-    private final String pathWithUserId = "/{user-id}";
 
-    @GetMapping(pathWithUserId)
+    @GetMapping("/{user-id}")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<Object> get(@PathVariable("user-id") Long userId) {
         log.info("Получен запрос на получение пользователя с id = {}", userId);
@@ -32,14 +31,14 @@ public class UserController {
         return client.create(user);
     }
 
-    @PatchMapping(pathWithUserId)
+    @PatchMapping("/{user-id}")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<Object> update(@PathVariable("user-id") Long userId, @RequestBody User newUser) {
         log.info("Получен запрос на обновление пользователя с id = {}", userId);
         return client.update(userId, newUser);
     }
 
-    @DeleteMapping(pathWithUserId)
+    @DeleteMapping("/{user-id}")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<Object> delete(@PathVariable("user-id") Long userId) {
         log.info("Получен запрос на удаление пользователя с id = {}", userId);

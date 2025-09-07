@@ -18,7 +18,6 @@ import ru.practicum.shareit.item.model.Item;
 public class ItemController {
 
     private final String userIdHeader = "X-Sharer-User-Id";
-    private final String pathWithItemId = "/{item-id}";
 
     private ItemClient client;
 
@@ -29,14 +28,14 @@ public class ItemController {
         return client.create(owner, item);
     }
 
-    @GetMapping(pathWithItemId)
+    @GetMapping("/{item-id}")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<Object> get(@RequestHeader(required = true, name = userIdHeader) Long userId, @PathVariable("item-id") Long itemId) {
         log.info("Получен запрос на получение предмета c id = {}", itemId);
         return client.get(userId, itemId);
     }
 
-    @PatchMapping(pathWithItemId)
+    @PatchMapping("/{item-id}")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<Object> update(@RequestHeader(required = true, name = userIdHeader) Long owner, @PathVariable("item-id") Long itemId, @RequestBody Item newItem) {
         log.info("Получен запрос на обновление предмета c id = {} от пользователя c id = {}", itemId, owner);
@@ -57,14 +56,14 @@ public class ItemController {
         return client.search(text);
     }
 
-    @DeleteMapping(pathWithItemId)
+    @DeleteMapping("/{item-id}")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<Object> deleteItem(@RequestHeader(required = true, name = userIdHeader) Long owner, @PathVariable("item-id") Long itemId) {
         log.info("Получен запрос на удаление предмета с id = {} от пользователя c id = {}", itemId, owner);
         return client.delete(owner, itemId);
     }
 
-    @PostMapping(pathWithItemId+"/comment")
+    @PostMapping("/{item-id}/comment")
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Object> postComment(@RequestHeader(required = true, name = userIdHeader) Long userId, @PathVariable("item-id") Long itemId, @RequestBody @Valid Comment comment) {
         log.info("Получен запрос на добавление пользователем с id = {} комментария для предмета с id = {}", userId, itemId);
