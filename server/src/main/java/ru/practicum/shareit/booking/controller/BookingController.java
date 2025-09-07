@@ -18,6 +18,7 @@ import java.util.List;
 public class BookingController {
 
     private final String userIdHeader = "X-Sharer-User-Id";
+    private final String pathWithBookingId = "/{booking-id}";
 
     @Autowired
     private BookingService service;
@@ -28,13 +29,13 @@ public class BookingController {
         return BookingDto.toBookingDto(service.create(id, booking));
     }
 
-    @GetMapping("/{booking-id}")
+    @GetMapping(pathWithBookingId)
     public BookingDto get(@PathVariable("booking-id") Long bookingId, @RequestHeader(name = userIdHeader) Long userId) {
         log.info("Получен запрос от пользователя с id = {} на получение бронирования с id = {}", userId, bookingId);
         return BookingDto.toBookingDto(service.get(bookingId, userId));
     }
 
-    @PatchMapping("/{booking-id}")
+    @PatchMapping(pathWithBookingId)
     public BookingDto responseToBooking(@RequestHeader(name = userIdHeader) Long userId, @PathVariable("booking-id") Long bookingId, @RequestParam(name = "approved") boolean isApproved) {
         log.info("Получен запрос от пользователя с id = {} для ответа на бронирования с id = {} с решением {}", userId, bookingId, isApproved);
         return BookingDto.toBookingDto(service.responseToBooking(bookingId, isApproved, userId));
