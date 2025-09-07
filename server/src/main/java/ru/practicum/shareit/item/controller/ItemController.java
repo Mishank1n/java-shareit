@@ -63,7 +63,7 @@ public class ItemController {
         service.delete(owner, itemId);
     }
 
-    @PostMapping(pathWithItemId+"/comment")
+    @PostMapping(pathWithItemId + "/comment")
     public CommentDto postComment(@RequestHeader(required = true, name = userIdHeader) Long userId, @PathVariable("item-id") Long itemId, @RequestBody Comment comment) {
         log.info("Получен запрос на добавление пользователем с id = {} комментария для предмета с id = {}", userId, itemId);
         return service.postComment(userId, itemId, comment);
