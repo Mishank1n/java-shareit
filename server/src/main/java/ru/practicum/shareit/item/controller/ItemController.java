@@ -22,6 +22,7 @@ import java.util.List;
 public class ItemController {
 
     private final String userIdHeader = "X-Sharer-User-Id";
+    private final String pathWithItemId = "/{item-id}";
     @Autowired
     private ItemService service;
 
@@ -31,13 +32,13 @@ public class ItemController {
         return ItemDto.toItemDto(service.create(owner, item));
     }
 
-    @PatchMapping("/{item-id}")
+    @PatchMapping(pathWithItemId)
     public ItemDto update(@RequestHeader(required = true, name = userIdHeader) Long owner, @PathVariable("item-id") Long itemId, @RequestBody Item newItem) {
         log.info("Получен запрос на обновление предмета c id = {} от пользователя c id = {}", itemId, owner);
         return ItemDto.toItemDto(service.update(owner, itemId, newItem));
     }
 
-    @GetMapping("/{item-id}")
+    @GetMapping(pathWithItemId)
     public ItemDtoToOwner get(@RequestHeader(required = true, name = userIdHeader) Long userId, @PathVariable("item-id") Long itemId) {
         log.info("Получен запрос на получение предмета c id = {}", itemId);
         return service.getById(userId, itemId);
@@ -55,13 +56,13 @@ public class ItemController {
         return service.search(text).stream().map(ItemDto::toItemDto).toList();
     }
 
-    @DeleteMapping("/{item-id}")
+    @DeleteMapping(pathWithItemId)
     public void deleteItem(@RequestHeader(required = true, name = userIdHeader) Long owner, @PathVariable("item-id") Long itemId) {
         log.info("Получен запрос на удаление предмета с id = {} от пользователя c id = {}", itemId, owner);
         service.delete(owner, itemId);
     }
 
-    @PostMapping("/{item-id}/comment")
+    @PostMapping(pathWithItemId+"/comment")
     public CommentDto postComment(@RequestHeader(required = true, name = userIdHeader) Long userId, @PathVariable("item-id") Long itemId, @RequestBody Comment comment) {
         log.info("Получен запрос на добавление пользователем с id = {} комментария для предмета с id = {}", userId, itemId);
         return service.postComment(userId, itemId, comment);

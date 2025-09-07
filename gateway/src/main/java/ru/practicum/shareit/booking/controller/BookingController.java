@@ -17,6 +17,7 @@ import ru.practicum.shareit.booking.model.Booking;
 public class BookingController {
 
     private final String userIdHeader = "X-Sharer-User-Id";
+    private final String pathWithBookingId = "/{booking-id}";
 
     @Autowired
     private BookingClient client;
@@ -28,7 +29,7 @@ public class BookingController {
         return client.create(userId, booking);
     }
 
-    @GetMapping("/{booking-id}")
+    @GetMapping(pathWithBookingId)
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<Object> get(@PathVariable("booking-id") Long bookingId, @RequestHeader(name = userIdHeader) Long userId) {
         log.info("Получен запрос от пользователя с id = {} на получение бронирования с id = {}", userId, bookingId);
@@ -36,7 +37,7 @@ public class BookingController {
     }
 
 
-    @PatchMapping("/{booking-id}")
+    @PatchMapping(pathWithBookingId)
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<Object> responseToBooking(@RequestHeader(name = userIdHeader) Long userId, @PathVariable("booking-id") Long bookingId, @RequestParam(name = "approved") boolean isApproved) {
         log.info("Получен запрос от пользователя с id = {} для ответа на бронирования с id = {} с решением {}", userId, bookingId, isApproved);
