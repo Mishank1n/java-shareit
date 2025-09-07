@@ -2,7 +2,8 @@ FROM amazoncorretto:21
 
 VOLUME /tmp
 
-ARG JAR_FILE=gateway/target/*.jar
-COPY ${JAR_FILE} app.jar
+COPY gateway/target/gateway-0.0.1-SNAPSHOT.jar /app.jar
 
-ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -jar /app.jar"]
+ENV JAVA_OPTS=""
+
+ENTRYPOINT sh -c "java $JAVA_OPTS -jar /app.jar"
