@@ -64,7 +64,7 @@ public class ItemController {
         return client.delete(owner, itemId);
     }
 
-    @PostMapping(pathWithItemId+"/comment")
+    @PostMapping(pathWithItemId + "/comment")
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<Object> postComment(@RequestHeader(required = true, name = userIdHeader) Long userId, @PathVariable("item-id") Long itemId, @RequestBody @Valid Comment comment) {
         log.info("Получен запрос на добавление пользователем с id = {} комментария для предмета с id = {}", userId, itemId);
